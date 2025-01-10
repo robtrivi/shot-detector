@@ -1,0 +1,33 @@
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+# Django migrations
+*/migrations/*
+!*/migrations/__init__.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Django stuff:
+*.sqlite3
+db.sqlite3
+
+# Media
+/media
+/audios
+
+
+# Static files
+/static
+
+# VS Code
+.vscode/
