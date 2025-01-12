@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+    <section class="action-section card-section">
+        <h2>Monitoreo en Vivo</h2>
+        <div class="action-controls">
+            <button id="start-monitoring" class="btn"><i class="fas fa-play"></i> Iniciar Monitoreo</button>
+            <button id="stop-monitoring" disabled class="btn"><i class="fas fa-stop"></i> Detener Monitoreo</button>
+        </div>
+        <p id="status">Presiona "Iniciar Monitoreo" para comenzar.</p>
+    </section>
+    <section class="card-section">
+        <h2>Resultados</h2>
+        <div id="results">
+            <ul id="lista-incidentes">
+                <!-- Aquí se agregarán los incidentes recibidos vía WebSocket -->
+            </ul>
+            <p>Los resultados se muestran aquí.</p>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="{% static 'js/results.js' %}"></script>
+    <script src="{% static 'js/monitor.js' %}"></script>
+{% endblock %}

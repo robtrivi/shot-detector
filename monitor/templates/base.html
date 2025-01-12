@@ -1,0 +1,29 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modelo de Detección de Disparos</title>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css">
+</head>
+<body>
+    <header>
+        <h1>Sentinel Model</h1>
+    </header>
+    <nav class="actions-menu">
+        <a id="upload-audio" class="btn" href="{% url 'upload_audio' %}"><i class="fas fa-upload"></i> Subir Audio</a>
+        {% comment %} <a id="record-audio" class="btn" href="{% url 'record_audio' %}"><i class="fas fa-microphone"></i> Grabar Audio</a> {% endcomment %}
+        <a id="live-monitoring" class="btn" href="{% url 'monitor_audio' %}"><i class="fas fa-broadcast-tower"></i> Monitorear en Vivo</a>
+    </nav>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    <footer>
+        <p>© 2025 - Sistema de Detección Inteligente</p>
+    </footer>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

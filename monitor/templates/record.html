@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+    <h2>Grabar Audio</h2>
+    <button id="start-record">Iniciar Grabación</button>
+    <button id="stop-record" disabled>Detener Grabación</button>
+    <p id="record-status">Presiona "Iniciar Grabación" para comenzar.</p>
+    <button id="analyze-record" disabled>Analizar</button>
+    {% endblock %}
+{% block scripts %}
+    <script src="{% static 'js/record.js' %}"></script>
+{% endblock %}

@@ -27,7 +27,6 @@
     <button id="start-btn">Monitorear</button>
     <button id="stop-btn" disabled>Detener Monitoreo</button>
     <p id="status">Presiona "Monitorear" para comenzar.</p>
-
     
     <script>
         
@@ -57,8 +56,11 @@
             try {
                 // Iniciar AudioContext
                 if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 }
+        
+                const sampleRate = audioContext.sampleRate;
+        
 
                 // Obtener ubicación del usuario
                 const location = await getLocation();
@@ -68,7 +70,13 @@
                 websocket = new WebSocket("ws://127.0.0.1:8000/ws/audio/");
                 websocket.onopen = () => {
                     console.log("WebSocket conectado.");
-                    websocket.send(JSON.stringify({ type: "location", data: location }));
+                    websocket.send(JSON.stringify({
+                        type: "metadata",
+                        data: {
+                            location,
+                            sampleRate
+                        }
+                    }));
                 };
                 websocket.onclose = () => console.log("WebSocket cerrado.");
                 websocket.onerror = err => console.error("Error en WebSocket:", err);

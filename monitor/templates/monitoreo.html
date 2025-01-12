@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monitoreo de Incidentes</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+    .datos {
+      margin-bottom: 10px;
+    }
+    .mapa {
+      width: 100%;
+      height: 300px;
+      margin-bottom: 10px;
+    }
+    button {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Monitoreo de posibles incidentes de disparos</h1>
+  <ul id="lista-incidentes">
+    <!-- Aquí se agregarán los incidentes recibidos vía WebSocket -->
+  </ul>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    function formatearFecha(fechaISO) {
+      const opciones = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+      const fecha = new Date(fechaISO);
+      return fecha.toLocaleString('es-ES', opciones);
+    }
+    const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const socket = new WebSocket(ws_scheme + '://' + window.location.host + '/ws/incidentes/');
+
+    socket.onopen = function(event) {
+      console.log("Conexión WebSocket establecida.");
+    };
+
+    socket.onclose = function(event) {
+      console.log("Conexión WebSocket cerrada.");
+    };
+
+    socket.onmessage = function(event) {
+      const data = JSON.parse(event.data);
+
+      const lista = document.getElementById("lista-incidentes");
+      const nuevoItem = document.createElement("li");
+      nuevoItem.id = "disparo-" + data.id;
+
+      // HTML para datos del incidente
+      nuevoItem.innerHTML = `
+        <div class="datos">
+            <h3>Posible incidente detectado el ${formatearFecha(data.fecha)}</h3>
+            <p><strong>Ubicación aproximada:</strong></p>
+            <div id="mapa-${data.id}" class="mapa"></div>
+            <audio controls>
+                <source src="/media/disparos/disparo_${data.id}.wav" type="audio/wav">
+                Tu navegador no soporta la reproducción de audio.
+            </audio>
+            <p><strong>Probabilidad de disparo:</strong> ${data.probabilidad}</p>
+            <div class="acciones">
+                <button id="aprobar-${data.id}" onclick="aprobar(${data.id})">Marcar como confirmado</button>
+                <button id="desaprobar-${data.id}" onclick="desaprobar(${data.id})">Descartar</button>
+            </div>
+        </div>
+      `;
+      lista.insertBefore(nuevoItem, lista.firstChild); // Agregar al inicio de la lista
+
+      // Crear un mapa para este incidente
+      const mapa = L.map(`mapa-${data.id}`, {
+        center: [data.latitud, data.longitud],
+        zoom: 16,
+        scrollWheelZoom: false
+      });
+
+      // Capa base del mapa
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(mapa);
+
+      const circle = L.circle([data.latitud, data.longitud], {
+        color: 'blue',
+        fillColor: 'blue',
+        fillOpacity: 0.2,
+        radius: 100
+    }).addTo(mapa);
+    };
+
+    function aprobar(id) {
+      fetch(`/aprobar_disparo/${id}/`, {
+          method: 'POST',
+          headers: {
+              'X-CSRFToken': getCookie('csrftoken'),
+          },
+      }).then(response => {
+          if(response.ok) {
+              console.log("Disparo aprobado.");
+              borrarBotones(id);
+          }
+      }).catch(error => console.error(error));
+    }
+
+    function desaprobar(id) {
+      fetch(`/desaprobar_disparo/${id}/`, {
+          method: 'POST',
+          headers: {
+              'X-CSRFToken': getCookie('csrftoken'),
+          },
+      }).then(response => {
+          if(response.ok) {
+              console.log("Disparo desaprobado.");
+              borrarBotones(id);
+          }
+      }).catch(error => console.error(error));
+    }
+
+    function borrarBotones(id) {
+      const aprobarBtn = document.getElementById(`aprobar-${id}`);
+      const desaprobarBtn = document.getElementById(`desaprobar-${id}`);
+      if (aprobarBtn) aprobarBtn.remove();
+      if (desaprobarBtn) desaprobarBtn.remove();
+    }
+
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                  cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                  break;
+              }
+          }
+      }
+      return cookieValue;
+    }
+  </script>
+</body>
+</html>

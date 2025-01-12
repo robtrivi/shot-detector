@@ -6,18 +6,27 @@ import numpy as np
 from django.utils import timezone
 from datetime import datetime
 from channels.generic.websocket import AsyncWebsocketConsumer
+from services.audio_analysis import AudioProcessor
+from monitor.serializer import DisparoSerializer
 from .models import Disparo
 import json
 from asgiref.sync import sync_to_async
 import random as rd
+from shot_detector.constants import FULL_MODEL_PATH, UMBRAL
+
 
 class AudioConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.audio_processor = AudioProcessor(
+            model_path=FULL_MODEL_PATH,
+        )
         self.audio_buffer = bytearray()
         self.audio_save_thread = threading.Thread(target=self.save_audio_loop, daemon=True)
         self.audio_save_queue = []
+        self.thread_running = True
         self.save_audio_lock = threading.Lock()
+        self.audio_condition = threading.Condition(self.save_audio_lock)
         self.audio_save_thread.start()
 
     async def connect(self):
@@ -27,11 +36,11 @@ class AudioConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data=None, bytes_data=None):
         if text_data:
             data = json.loads(text_data)
-            if data["type"] == "location":
-                # Procesa la ubicación del cliente
-                self.location = data["data"]
+            if data["type"] == "metadata":
+                self.location = data["data"]["location"]
+                self.sample_rate = data["data"]["sampleRate"]
+                print(f"Ubicación: {self.location}, Frecuencia de muestreo: {self.sample_rate}")
         elif bytes_data:
-            # Procesa los datos de audio
             self.audio_buffer.extend(bytes_data)
             await self.process_audio()
 
@@ -44,9 +53,10 @@ class AudioConsumer(AsyncWebsocketConsumer):
         # Libera el buffer de audio
         self.audio_buffer.clear()
 
-        # Detiene el hilo de guardado si es necesario
-        with self.save_audio_lock:
-            self.audio_save_queue.clear()
+        self.thread_running = False
+        with self.audio_condition:
+            self.audio_condition.notify_all()
+        self.audio_save_thread.join()
 
         # Opcional: guarda logs o realiza tareas adicionales
         print("Recursos liberados y conexión cerrada.")
@@ -63,11 +73,8 @@ class AudioConsumer(AsyncWebsocketConsumer):
         while len(self.audio_buffer) >= window_size:
             window = self.audio_buffer[:window_size]
             
-            with self.save_audio_lock:
-                self.audio_save_queue.append(window)
-
+            
             await self.process_window(window)
-
             # Desplaza el buffer en 2 segundo para el solapamiento deseado
             self.audio_buffer = self.audio_buffer[step_size:]
     
@@ -77,46 +84,60 @@ class AudioConsumer(AsyncWebsocketConsumer):
         longitud = kwargs.get("longitud")
         ultimo = Disparo.objects.filter(latitud=latitud, longitud=longitud).last()
         if not ultimo or (ultimo and (timezone.now() - ultimo.fecha).seconds > 4):
-            print("Disparo detectado.")
             nuevo_disparo = Disparo.objects.create(**kwargs)
+            serializer = DisparoSerializer(nuevo_disparo)
+            data = serializer.data
+            data["type"] = "incident_message"
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
-            "incidentes_grupo",
-            {
-                "type": "incident_message",
-                "id": nuevo_disparo.id,
-                "fecha": nuevo_disparo.fecha.isoformat(),
-                "latitud": nuevo_disparo.latitud,
-                "longitud": nuevo_disparo.longitud,
-            }
+                "incidentes_grupo",
+                data
             )
+            return nuevo_disparo
         return None
     
     async def process_window(self, window):
         """Procesa una ventana de audio y detecta disparos."""
+        print("Procesando ventana...")
         np_audio = np.frombuffer(window, dtype=np.int16)
-        if self.detect_shot(np_audio):
-            await self.create_disparo(
+        clase, confidence = self.audio_processor.predict(np_audio, self.sample_rate)
+        print(f"Probabilidad de {clase}: {confidence}")
+        if clase == "disparo" and confidence > UMBRAL:
+            disparo = await self.create_disparo(
                     latitud=self.location["latitude"],
-                    longitud=self.location["longitude"]
+                    longitud=self.location["longitude"],
+                    probabilidad=confidence
                 )
-        print("Ventana procesada.")
+            if disparo:  # Si se crea un nuevo disparo
+                with self.save_audio_lock:
+                    # Guarda el audio junto con el ID del disparo
+                    self.audio_save_queue.append((window.copy(), disparo.id))
+                    self.audio_condition.notify()  # Notificar al hilo que hay un nuevo audio
+            return disparo
+        print(f"Ventana procesada.")
+        return None
 
     def detect_shot(self, audio_data):
         """Simulación de detección de disparos."""
-        return rd.random() > 0.5  # Ejemplo de umbral
+        return rd.random()  # Ejemplo de umbral
 
     def save_audio_loop(self):
         """Hilo para guardar los audios procesados."""
-        while True:
-            if self.audio_save_queue:
-                with self.save_audio_lock:
-                    audio_data = self.audio_save_queue.pop(0)
+        while self.thread_running:
+            with self.audio_condition:
+                while not self.audio_save_queue and self.thread_running:
+                    self.audio_condition.wait()  # Bloquea el hilo hasta que sea notificado
 
-                # Guarda el audio en un archivo WAV
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S%f")
-                file_path = f"./audios/audio_{timestamp}.wav"
-                self.save_to_wav(audio_data, file_path)
+                if not self.thread_running:
+                    break
+
+                # Extraer el audio de la cola
+                audio_data,id = self.audio_save_queue.pop(0)
+
+            # Guarda el audio en un archivo WAV
+            # name_file = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            file_path = f"./media/disparos/disparo_{id}.wav"
+            self.save_to_wav(audio_data, file_path)
 
     @staticmethod
     def save_to_wav(audio_data, file_path):
@@ -148,9 +169,4 @@ class IncidentesConsumer(AsyncWebsocketConsumer):
     # Recibir mensaje desde el grupo
     async def incident_message(self, event):
         # Enviar mensaje al WebSocket
-        await self.send(text_data=json.dumps({
-            'id': event['id'],
-            'fecha': event['fecha'],
-            'latitud': event['latitud'],
-            'longitud': event['longitud'],
-        }))
+        await self.send(text_data=json.dumps(event))
