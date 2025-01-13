@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Disparo
+from monitor.models import Disparo
 
 class DisparoSerializer(serializers.ModelSerializer):
     class Meta:

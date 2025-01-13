@@ -8,7 +8,7 @@ from datetime import datetime
 from channels.generic.websocket import AsyncWebsocketConsumer
 from services.audio_analysis import AudioProcessor
 from monitor.serializer import DisparoSerializer
-from .models import Disparo
+from monitor.models import Disparo
 import json
 from asgiref.sync import sync_to_async
 import random as rd

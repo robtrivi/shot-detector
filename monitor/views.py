@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from django.conf import settings
 from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404
-from .models import Disparo
+from monitor.models import Disparo
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
