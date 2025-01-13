@@ -2,19 +2,18 @@
 {% load static %}
 
 {% block content %}
-    <section class="card-section card-section">
-        <h2>Subir Audio</h2>
-        <p>Selecciona un archivo de audio para analizar.</p>
-        <!-- Input oculto con un label estilizado -->
-        <input type="file" id="upload-file" accept="audio/*">
-        <label for="upload-file"><i class="fas fa-upload"></i> Seleccionar Archivo</label>
-        <br><br>
-        <p id="upload-status"></p>
-        <div class="action-controls">
-            <button id="analyze-upload" disabled class="btn">Analizar</button>
+    <section class="card-section">
+        <h2>Resultados</h2>
+        <div id="results">
+            <ul id="lista-incidentes">
+                <!-- Aquí se agregarán los incidentes recibidos vía WebSocket -->
+            </ul>
+            <p>Los resultados se muestran aquí.</p>
         </div>
     </section>
 {% endblock %}
+
 {% block scripts %}
-<script src="{% static 'js/upload.js' %}"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="{% static 'js/results.js' %}"></script>
 {% endblock %}

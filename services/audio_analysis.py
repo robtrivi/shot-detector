@@ -44,6 +44,11 @@ class AudioProcessor:
             if len(window) < samples_per_window:
                 window = np.pad(window, (0, samples_per_window - len(window)), mode='constant')
 
+            rms = np.sqrt(np.mean(window**2))
+            if rms < 0.025:
+                print("Ventana descartada por baja energía")
+                return None
+
             # Generar espectrograma mel
             mel_spec = librosa.feature.melspectrogram(y=window, sr=self.target_sr)
             mel_spec = np.expand_dims(mel_spec, axis=-1)  
@@ -58,6 +63,8 @@ class AudioProcessor:
         Preprocesa el audio y realiza predicciones con el modelo.
         """
         spectrograms = self.preprocess_audio(audio_buffer, original_sr)
+        if spectrograms is None:
+            return None, None
         predictions = self.model.predict(spectrograms)[0]
         classes = ['disparo', 'no_disparo']
         predicted_class = classes[np.argmax(predictions)]

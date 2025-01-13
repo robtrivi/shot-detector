@@ -13,10 +13,11 @@
     <header>
         <h1>Sentinel Model</h1>
     </header>
-    <nav class="actions-menu">
+    
+    <nav class="actions-menu" id="actions-menu">
         <a id="upload-audio" class="btn" href="{% url 'upload_audio' %}"><i class="fas fa-upload"></i> Subir Audio</a>
-        {% comment %} <a id="record-audio" class="btn" href="{% url 'record_audio' %}"><i class="fas fa-microphone"></i> Grabar Audio</a> {% endcomment %}
-        <a id="live-monitoring" class="btn" href="{% url 'monitor_audio' %}"><i class="fas fa-broadcast-tower"></i> Monitorear en Vivo</a>
+        <a id="live-monitoring" class="btn" href="{% url 'monitor_audio' %}"><i class="fas fa-microphone"></i> Monitorear en Vivo</a>
+        <a id="results" class="btn" href="{% url 'monitoreo' %}"><i class="fas fa-broadcast-tower"></i> Últimos reportes</a>
     </nav>
     <main>
         {% block content %}{% endblock %}

@@ -1,19 +1,29 @@
 import os
 import librosa
-from django.http import JsonResponse
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from django.conf import settings
 from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404
 from .models import Disparo
 from django.shortcuts import render
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-import tempfile
-import numpy as np
 from services.audio_analysis import AudioProcessor
 from shot_detector.constants import FULL_MODEL_PATH, UMBRAL
+from monitor.serializer import DisparoSerializer
+import json
+
+class DisparosAPIView(APIView):
+    def get(self, request):
+        disparos = Disparo.objects.all().order_by('-fecha')
+        data = DisparoSerializer(disparos, many=True)
+        return Response(data.data)
 
 def monitoreo(request):
-    return render(request, 'monitoreo.html')
+    disparos = Disparo.objects.all().order_by('-fecha')
+    data = DisparoSerializer(disparos, many=True)
+    return render(request, 'monitoreo.html', {'disparos': json.dumps(data.data)})
 
 def home(request):
     return render(request, 'base.html')
@@ -56,7 +66,8 @@ def analyze_audio(request):
             
             # Realizar predicción (asume que tienes un `audio_processor`)
             predictions = audio_processor.predict(audio_buffer, original_sr)
-
+            if predictions is None:
+                return JsonResponse({'error': 'No se detectó audio válido'}, status=400)
             # Extraer resultados
             result = {
                 'clase': predictions[0],

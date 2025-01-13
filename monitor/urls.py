@@ -10,4 +10,5 @@ urlpatterns = [
     path('monitoreo/', views.monitoreo, name='monitoreo'),
     path('aprobar_disparo/<int:id>/', views.aprobar_disparo, name='aprobar_disparo'),
     path('desaprobar_disparo/<int:id>/', views.desaprobar_disparo, name='desaprobar_disparo'),
+    path('api/incidentes/', views.DisparosAPIView.as_view(), name='disparos'),
 ]

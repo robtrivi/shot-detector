@@ -39,10 +39,10 @@ class AudioConsumer(AsyncWebsocketConsumer):
             if data["type"] == "metadata":
                 self.location = data["data"]["location"]
                 self.sample_rate = data["data"]["sampleRate"]
-                print(f"Ubicación: {self.location}, Frecuencia de muestreo: {self.sample_rate}")
         elif bytes_data:
             self.audio_buffer.extend(bytes_data)
             await self.process_audio()
+
 
     async def disconnect(self, close_code):
         """
@@ -96,30 +96,36 @@ class AudioConsumer(AsyncWebsocketConsumer):
             return nuevo_disparo
         return None
     
+    async def send(self, text_data=None, bytes_data=None):
+        if text_data:
+            print(text_data)
+            await super().send(text_data=json.dumps(text_data))
+        elif bytes_data:
+            await super().send(bytes_data=bytes_data)
+
     async def process_window(self, window):
         """Procesa una ventana de audio y detecta disparos."""
         print("Procesando ventana...")
         np_audio = np.frombuffer(window, dtype=np.int16)
         clase, confidence = self.audio_processor.predict(np_audio, self.sample_rate)
-        print(f"Probabilidad de {clase}: {confidence}")
+        if confidence is None:
+            return None
         if clase == "disparo" and confidence > UMBRAL:
             disparo = await self.create_disparo(
                     latitud=self.location["latitude"],
                     longitud=self.location["longitude"],
                     probabilidad=confidence
                 )
+            # enviar por websocket
             if disparo:  # Si se crea un nuevo disparo
                 with self.save_audio_lock:
                     # Guarda el audio junto con el ID del disparo
                     self.audio_save_queue.append((window.copy(), disparo.id))
                     self.audio_condition.notify()  # Notificar al hilo que hay un nuevo audio
+                    await self.send(text_data=DisparoSerializer(disparo).data)
             return disparo
-        print(f"Ventana procesada.")
+        print("Ventana procesada.")
         return None
-
-    def detect_shot(self, audio_data):
-        """Simulación de detección de disparos."""
-        return rd.random()  # Ejemplo de umbral
 
     def save_audio_loop(self):
         """Hilo para guardar los audios procesados."""
@@ -135,17 +141,16 @@ class AudioConsumer(AsyncWebsocketConsumer):
                 audio_data,id = self.audio_save_queue.pop(0)
 
             # Guarda el audio en un archivo WAV
-            # name_file = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             file_path = f"./media/disparos/disparo_{id}.wav"
             self.save_to_wav(audio_data, file_path)
 
     @staticmethod
     def save_to_wav(audio_data, file_path):
         """Guarda un fragmento de audio en un archivo WAV."""
-        sample_rate = 16000  # 16 kHz
+        sample_rate = 16000 
         with wave.open(file_path, "wb") as wf:
-            wf.setnchannels(1)  # Mono
-            wf.setsampwidth(2)  # 16 bits
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
             wf.setframerate(sample_rate)
             wf.writeframes(audio_data)
 

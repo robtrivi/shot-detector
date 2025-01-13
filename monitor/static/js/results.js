@@ -1,35 +1,7 @@
-console.log("Cargando resultados.js");
 
-// Formatear fecha para mostrarla en un formato amigable
-function formatearFecha(fechaISO) {
-    const opciones = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-    const fecha = new Date(fechaISO);
-    return fecha.toLocaleString('es-ES', opciones);
-}
-
-// WebSocket para recibir los incidentes
-const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
-const socket = new WebSocket(ws_scheme + '://' + window.location.host + '/ws/incidentes/');
-
-// Objeto para almacenar instancias de mapas
 const mapas = {};
 
-// Al abrir el WebSocket
-socket.onopen = function() {
-    console.log("Conexión WebSocket establecida.");
-};
-
-// Al cerrar el WebSocket
-socket.onclose = function() {
-    console.log("Conexión WebSocket cerrada.");
-};
-
-// Al recibir datos del WebSocket
-socket.onmessage = function(event) {
-    const data = JSON.parse(event.data);
-
-    // Contenedor principal de incidentes
-    const lista = document.getElementById("lista-incidentes");
+function elementoIncidente(data){
     const nuevoItem = document.createElement("li");
     nuevoItem.id = `disparo-${data.id}`;
 
@@ -50,6 +22,65 @@ socket.onmessage = function(event) {
             </div>
         </div>
     `;
+    return nuevoItem;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/incidentes/')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error en la solicitud: ${response.statusText}`);
+            }
+            return response.json(); // Convertir la respuesta a JSON
+        })
+        .then(data => {
+            console.log("Datos recibidos:", data);
+
+            // Muestra los datos en la página
+            const container = document.getElementById("lista-incidentes");
+            data.forEach(item => {
+                const nuevoItem = elementoIncidente(item);
+                container.appendChild(nuevoItem);
+                if (mapas[item.id]) {
+                    mapas[item.id].remove();
+                    delete mapas[item.id];
+                }
+                initMapa(item);
+            });
+        })
+        .catch(error => {
+            console.error("Error al llamar al API:", error);
+    });
+});
+function formatearFecha(fechaISO) {
+    const opciones = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+    const fecha = new Date(fechaISO);
+    return fecha.toLocaleString('es-ES', opciones);
+}
+
+// WebSocket para recibir los incidentes
+const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
+const socket = new WebSocket(ws_scheme + '://' + window.location.host + '/ws/incidentes/');
+
+// Objeto para almacenar instancias de mapas
+
+// Al abrir el WebSocket
+socket.onopen = function() {
+    console.log("Conexión WebSocket establecida.");
+};
+
+// Al cerrar el WebSocket
+socket.onclose = function() {
+    console.log("Conexión WebSocket cerrada.");
+};
+
+// Al recibir datos del WebSocket
+socket.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+
+    // Contenedor principal de incidentes
+    const lista = document.getElementById("lista-incidentes");
+    const nuevoItem = elementoIncidente(data);
 
     lista.insertBefore(nuevoItem, lista.firstChild);
 
@@ -60,6 +91,12 @@ socket.onmessage = function(event) {
     }
 
     // Crear un nuevo mapa
+    initMapa(data);
+};
+
+function initMapa(data){
+    const m = document.getElementById(`mapa-${data.id}`);
+    console.log("Creando mapa para:", m);
     const mapa = L.map(`mapa-${data.id}`, {
         center: [data.latitud, data.longitud],
         zoom: 16,
@@ -86,8 +123,7 @@ socket.onmessage = function(event) {
     setTimeout(() => {
         mapa.invalidateSize();
     }, 200);
-};
-
+}
 // Función para manejar la aprobación de incidentes
 function aprobar(id) {
     fetch(`/aprobar_disparo/${id}/`, {

@@ -2,11 +2,19 @@ let audioContext = null;
 let websocket = null;
 let mediaRecorder = null;
 let audioStream = null;
+const mapas = {};
 
 // Botones
 const startBtn = document.getElementById('start-monitoring');
 const stopBtn = document.getElementById('stop-monitoring');
 const status = document.getElementById('status');
+
+function formatearFecha(fechaISO) {
+    const opciones = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+    const fecha = new Date(fechaISO);
+    return fecha.toLocaleString('es-ES', opciones);
+}
+
 
 async function getLocation() {
     return new Promise((resolve, reject) => {
@@ -46,6 +54,7 @@ async function startMonitoring() {
         websocket.onclose = () => console.log("WebSocket cerrado.");
         websocket.onerror = err => console.error("Error en WebSocket:", err);
 
+
         audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const source = audioContext.createMediaStreamSource(audioStream);
 
@@ -78,6 +87,9 @@ async function startMonitoring() {
         startBtn.disabled = true;
         stopBtn.disabled = false;
         status.textContent = "Monitoreando audio...";
+
+        // Recibir respuesta
+        websocket.onmessage = addIncident;
     } catch (error) {
         console.error("Error al iniciar el monitoreo:", error);
         status.textContent = "Error al iniciar el monitoreo. Revisa los permisos.";
@@ -108,6 +120,68 @@ function stopMonitoring() {
     status.textContent = "Monitoreo detenido.";
 }
 
+function addIncident(event){
+    const data = JSON.parse(event.data);
+
+    // Contenedor principal de incidentes
+    const lista = document.getElementById("lista-incidentes");
+    const nuevoItem = document.createElement("li");
+    nuevoItem.id = `disparo-${data.id}`;
+    console.log(data);
+    // HTML para los datos del incidente
+    nuevoItem.innerHTML = `
+        <div class="datos">
+            <h3>Posible disparo detectado el ${formatearFecha(data.fecha)}</h3>
+            <p><strong>Probabilidad de disparo:</strong> ${data.probabilidad}%</p>
+            <p><strong>Ubicación aproximada:</strong></p>
+            <div id="mapa-${data.id}" class="mapa"></div>
+            <audio controls>
+                <source src="/media/disparos/disparo_${data.id}.wav" type="audio/wav">
+                Tu navegador no soporta la reproducción de audio.
+            </audio>
+            <div class="action-controls">
+                <button id="aprobar-${data.id}" class="btn" onclick="aprobar(${data.id})">Marcar como confirmado</button>
+                <button id="desaprobar-${data.id}" class="btn" onclick="desaprobar(${data.id})">Descartar</button>
+            </div>
+        </div>
+    `;
+
+    lista.insertBefore(nuevoItem, lista.firstChild);
+
+    // Si el mapa ya existe, eliminarlo
+    if (mapas[data.id]) {
+        mapas[data.id].remove();
+        delete mapas[data.id];
+    }
+
+    // Crear un nuevo mapa
+    const mapa = L.map(`mapa-${data.id}`, {
+        center: [data.latitud, data.longitud],
+        zoom: 16,
+        scrollWheelZoom: false
+    });
+
+    // Agregar capa base al mapa
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(mapa);
+
+    // Agregar un círculo para marcar el incidente
+    L.circle([data.latitud, data.longitud], {
+        color: 'blue',
+        fillColor: 'blue',
+        fillOpacity: 0.2,
+        radius: 100
+    }).addTo(mapa);
+
+    // Guardar el mapa en el objeto
+    mapas[data.id] = mapa;
+
+    // Asegurar que el mapa se renderice correctamente
+    setTimeout(() => {
+        mapa.invalidateSize();
+    }, 200);
+}
 // Asignar eventos a los botones
 startBtn.addEventListener('click', startMonitoring);
 stopBtn.addEventListener('click', stopMonitoring);
