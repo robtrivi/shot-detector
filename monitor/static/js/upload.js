@@ -36,7 +36,7 @@ analyzeUploadBtn.addEventListener('click', () => {
             .then(response => {
                 if (!response.ok) {
                     console.log(response);
-                    throw new Error("Error en el servidor");
+                    throw new Error("Error en el servidor", response);
                 }
                 return response.json();
             })
