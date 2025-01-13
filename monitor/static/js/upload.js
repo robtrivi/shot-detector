@@ -48,7 +48,7 @@ analyzeUploadBtn.addEventListener('click', () => {
                         <strong>Probabilidad:</strong> ${(data.confidence * 100).toFixed(2)}%
                     `;
                 } else {
-                    uploadStatus.textContent = "Respuesta inesperada del servidor.";
+                    uploadStatus.textContent = "Respuesta inesperada del servidor";
                 }
             })
             .catch(error => {

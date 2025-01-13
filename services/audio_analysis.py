@@ -47,7 +47,7 @@ class AudioProcessor:
             rms = np.sqrt(np.mean(window**2))
             if rms < 0.025:
                 print("Ventana descartada por baja energía")
-                return None
+                continue
 
             # Generar espectrograma mel
             mel_spec = librosa.feature.melspectrogram(y=window, sr=self.target_sr)
@@ -63,12 +63,28 @@ class AudioProcessor:
         Preprocesa el audio y realiza predicciones con el modelo.
         """
         spectrograms = self.preprocess_audio(audio_buffer, original_sr)
-        if spectrograms is None:
-            return None, None
-        predictions = self.model.predict(spectrograms)[0]
+        print(f"Se generaron {len(spectrograms)} ventanas de audio")
+        if len(spectrograms) == 0:
+            return "no_disparo", 0.0
+        predictions = self.model.predict(spectrograms)
         classes = ['disparo', 'no_disparo']
-        predicted_class = classes[np.argmax(predictions)]
-        confidence = np.max(predictions)
-        print(f"Prob disparo {predictions[0]:.2f} Prob no disparo {predictions[1]:.2f}")
-        return (predicted_class, confidence)
+        disparo_ventanas = []
+        # Recorrer las predicciones de cada ventana
+        for pred in predictions:
+            clase_predicha = classes[np.argmax(pred)]
+            if clase_predicha == 'disparo':
+                disparo_ventanas.append(pred)
+
+        # Si se detectó al menos un disparo en alguna ventana
+        if disparo_ventanas:
+            # Obtener la ventana con mayor confianza de disparo
+            disparo_confianzas = [np.max(pred) for pred in disparo_ventanas]
+            max_idx = np.argmax(disparo_confianzas)
+            mejor_confianza = disparo_confianzas[max_idx]
+            return 'disparo', float(mejor_confianza)
+        else:
+            # Si ninguna ventana indica disparo, determinar la mayor confianza de 'no_disparo'
+            no_disparo_confianzas = [pred[classes.index('no_disparo')] for pred in predictions]
+            mejor_confianza = float(np.max(no_disparo_confianzas))
+            return 'no_disparo', mejor_confianza
         # return ('disparo', rd.random())  # Dummy prediction

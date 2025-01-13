@@ -66,7 +66,7 @@ def analyze_audio(request):
             
             # Realizar predicción (asume que tienes un `audio_processor`)
             predictions = audio_processor.predict(audio_buffer, original_sr)
-            if predictions is None:
+            if None in predictions:
                 return JsonResponse({'error': 'No se detectó audio válido'}, status=400)
             # Extraer resultados
             result = {
@@ -77,6 +77,9 @@ def analyze_audio(request):
         except Exception as e:
             print("Error durante el análisis:", e)
             return JsonResponse({'error': str(e)}, status=500)
+        finally:
+            # Eliminar el archivo de audio
+            os.remove(audio_file_path)
 
     return JsonResponse({'error': 'Solicitud inválida'}, status=400)
 
