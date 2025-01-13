@@ -26,7 +26,7 @@ def monitoreo(request):
     return render(request, 'monitoreo.html', {'disparos': json.dumps(data.data)})
 
 def home(request):
-    return render(request, 'base.html')
+    return render(request, 'upload.html')
 
 def upload_audio(request):
     return render(request, 'upload.html')
