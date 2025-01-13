@@ -132,7 +132,7 @@ function addIncident(event){
     nuevoItem.innerHTML = `
         <div class="datos">
             <h3>Posible disparo detectado el ${formatearFecha(data.fecha)}</h3>
-            <p><strong>Probabilidad de disparo:</strong> ${data.probabilidad}%</p>
+            <p><strong>Probabilidad de disparo:</strong> ${data.probabilidad*100}%</p>
             <p><strong>Ubicación aproximada:</strong></p>
             <div id="mapa-${data.id}" class="mapa"></div>
             <audio controls>
@@ -185,3 +185,56 @@ function addIncident(event){
 // Asignar eventos a los botones
 startBtn.addEventListener('click', startMonitoring);
 stopBtn.addEventListener('click', stopMonitoring);
+
+function aprobar(id) {
+    fetch(`/aprobar_disparo/${id}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+    }).then(response => {
+        if (response.ok) {
+            console.log("Disparo aprobado.");
+            borrarBotones(id);
+        }
+    }).catch(error => console.error(error));
+}
+
+// Función para manejar el descarte de incidentes
+function desaprobar(id) {
+    fetch(`/desaprobar_disparo/${id}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+    }).then(response => {
+        if (response.ok) {
+            console.log("Disparo desaprobado.");
+            borrarBotones(id);
+        }
+    }).catch(error => console.error(error));
+}
+
+// Eliminar botones de acciones
+function borrarBotones(id) {
+    const aprobarBtn = document.getElementById(`aprobar-${id}`);
+    const desaprobarBtn = document.getElementById(`desaprobar-${id}`);
+    if (aprobarBtn) aprobarBtn.remove();
+    if (desaprobarBtn) desaprobarBtn.remove();
+}
+
+// Obtener CSRF Token para las solicitudes
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}

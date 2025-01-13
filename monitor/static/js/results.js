@@ -9,19 +9,20 @@ function elementoIncidente(data){
     nuevoItem.innerHTML = `
         <div class="datos">
             <h3>Posible disparo detectado el ${formatearFecha(data.fecha)}</h3>
-            <p><strong>Probabilidad de disparo:</strong> ${data.probabilidad}%</p>
+            <p><strong>Probabilidad de disparo:</strong> ${data.probabilidad * 100}%</p>
             <p><strong>Ubicación aproximada:</strong></p>
             <div id="mapa-${data.id}" class="mapa"></div>
             <audio controls>
                 <source src="/media/disparos/disparo_${data.id}.wav" type="audio/wav">
                 Tu navegador no soporta la reproducción de audio.
             </audio>
+            ${data.deteccion_valida === null ? `
             <div class="action-controls">
                 <button id="aprobar-${data.id}" class="btn" onclick="aprobar(${data.id})">Marcar como confirmado</button>
                 <button id="desaprobar-${data.id}" class="btn" onclick="desaprobar(${data.id})">Descartar</button>
-            </div>
+            </div>` : ''}
         </div>
-    `;
+        `;
     return nuevoItem;
 }
 
