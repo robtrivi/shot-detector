@@ -132,7 +132,6 @@ function addIncident(event){
     nuevoItem.innerHTML = `
         <div class="datos">
             <h3>Posible disparo detectado el ${formatearFecha(data.fecha)}</h3>
-            <p><strong>Probabilidad de disparo:</strong> ${data.probabilidad*100}%</p>
             <p><strong>Ubicación aproximada:</strong></p>
             <div id="mapa-${data.id}" class="mapa"></div>
             <audio controls>

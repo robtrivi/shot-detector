@@ -45,7 +45,6 @@ analyzeUploadBtn.addEventListener('click', () => {
                 if (data.clase && data.confidence !== undefined) {
                     uploadStatus.innerHTML = `
                         <strong>Resultado:</strong> ${data.clase}<br>
-                        <strong>Probabilidad:</strong> ${(data.confidence * 100).toFixed(2)}%
                     `;
                 } else {
                     uploadStatus.textContent = "Respuesta inesperada del servidor";
