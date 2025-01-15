@@ -1,5 +1,7 @@
 # Sentinel Model
 
+## [Click para ir a la demo-live](http://robtrivi.com/)
+
 Este repositorio contiene el modelo de detección de disparos desarrollado para la materia de Inteligencia Artificial. Además del modelo, se incluye la configuración completa para levantar un servidor local que permita interactuar con la aplicación.
 
 ---
