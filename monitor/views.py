@@ -58,7 +58,6 @@ def analyze_audio(request):
             for chunk in audio_file.chunks():
                 f.write(chunk)
         
-        print(f"Archivo de audio guardado en: {audio_file_path}")
         
         try:
             # Cargar el archivo de audio y obtener sus datos

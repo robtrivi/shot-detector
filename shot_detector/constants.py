@@ -8,7 +8,7 @@ MODEL_PATH = os.path.join(BASE_DIR, 'models')
 MODEL_PATH = os.path.abspath(MODEL_PATH)
 
 # Nombre del modelo
-MODEL_NAME = 'sentinel_model_3.h5'
+MODEL_NAME = 'the_sentinel.h5'
 
 # Ruta completa del modelo
 FULL_MODEL_PATH = os.path.join(MODEL_PATH, MODEL_NAME)

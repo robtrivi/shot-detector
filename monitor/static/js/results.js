@@ -9,6 +9,7 @@ function elementoIncidente(data){
     nuevoItem.innerHTML = `
         <div class="datos">
             <h3>Posible disparo detectado el ${formatearFecha(data.fecha)}</h3>
+            <p><strong>Confianza del resultado: </strong> ${data.probabilidad*100} %</p>
             <p><strong>Ubicación aproximada:</strong></p>
             <div id="mapa-${data.id}" class="mapa"></div>
             <audio controls>
@@ -96,7 +97,6 @@ socket.onmessage = function(event) {
 
 function initMapa(data){
     const m = document.getElementById(`mapa-${data.id}`);
-    console.log("Creando mapa para:", m);
     const mapa = L.map(`mapa-${data.id}`, {
         center: [data.latitud, data.longitud],
         zoom: 16,

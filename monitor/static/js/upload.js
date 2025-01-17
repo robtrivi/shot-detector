@@ -35,7 +35,6 @@ analyzeUploadBtn.addEventListener('click', () => {
         })
             .then(response => {
                 if (!response.ok) {
-                    console.log(response);
                     throw new Error("Error en el servidor", response);
                 }
                 return response.json();
@@ -45,6 +44,7 @@ analyzeUploadBtn.addEventListener('click', () => {
                 if (data.clase && data.confidence !== undefined) {
                     uploadStatus.innerHTML = `
                         <strong>Resultado:</strong> ${data.clase}<br>
+                        <strong>Confianza:</strong> ${data.confidence*100} %<br>
                     `;
                 } else {
                     uploadStatus.textContent = "Respuesta inesperada del servidor";

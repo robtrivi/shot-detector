@@ -37,7 +37,6 @@ async function startMonitoring() {
 
         // Obtener ubicación del usuario
         const location = await getLocation();
-        console.log("Ubicación obtenida:", location);
 
         // Establecer conexión WebSocket
         websocket = new WebSocket("ws://127.0.0.1:8000/ws/audio/");
@@ -127,11 +126,11 @@ function addIncident(event){
     const lista = document.getElementById("lista-incidentes");
     const nuevoItem = document.createElement("li");
     nuevoItem.id = `disparo-${data.id}`;
-    console.log(data);
     // HTML para los datos del incidente
     nuevoItem.innerHTML = `
         <div class="datos">
             <h3>Posible disparo detectado el ${formatearFecha(data.fecha)}</h3>
+            <p><strong>Confianza del resultado: </strong> ${data.probabilidad*100} %</p>
             <p><strong>Ubicación aproximada:</strong></p>
             <div id="mapa-${data.id}" class="mapa"></div>
             <audio controls>
